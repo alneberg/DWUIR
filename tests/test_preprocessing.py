@@ -17,7 +17,8 @@ def test_umi_placement():
 def test_index_header_placement():
     """Correct index in header of R1"""
     for line in run_preprocessing():
-        assert line.split(b':')[-1] == b"CACCCGTT+GCTATCCT"
+        assert line.split(b':')[-1] == b"CACCCGTT+GCTATCCT\n"
+        break
 
 def test_read_sequence_R1():
     """First index placed in R1"""
@@ -27,7 +28,7 @@ def test_read_sequence_R1():
         if first:
             first = False
         else: # Only test the second line
-            assert line.startswith(b'CACCGTT')
+            assert line.startswith(b'CACCCGTT')
             second = True
             break
     assert second # Make sure the else case is executed
@@ -45,7 +46,7 @@ def test_r1r2_header():
 def test_r2_index():
     """Test insertion of index in R2"""
     output = run_preprocessing().readlines()
-    assert output[5].startswith('GCTATCCT')
+    assert output[5].startswith(b'GCTATCCT')
 
 if __name__ == '__main__':
     pass
