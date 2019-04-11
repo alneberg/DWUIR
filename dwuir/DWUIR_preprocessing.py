@@ -33,27 +33,34 @@ def main(args):
     if args.paired:
         step_len = 8
 
-    with dnaio.open(args.input_fastq) as ifh, \
+    with dnaio.open(args.input_fastq, interleaved=args.paired) as ifh, \
          dnaio.open(sys.stdout.buffer, fileformat='fastq', mode='w') as ofh:
         for record in ifh:
-            _, index1, umi, index2 = re.search(index_umi_re, record.name).groups()
-            record.name = re.sub(index_umi_re, r':\3 \1:\2+\4', record.name)
-            record.sequence = index1 + record.sequence
-            record.qualities = ':'*len(index1) + record.qualities
-            ofh.write(record)
+            if args.paired:
+                r1, r2 = record
+            else:
+                r1 = record
+
+            _, index1, umi, index2 = re.search(index_umi_re, r1.name).groups()
+            r1.name = re.sub(index_umi_re, r':\3 \1:\2+\4', r1.name)
+            r1.sequence = index1 + r1.sequence
+            r1.qualities = ':'*len(index1) + r1.qualities
+            ofh.write(r1)
 
             # Start printing R2:
-            record.name = record.name.replace('{} 1:'.format(umi), '{} 2:'.format(umi))
+            r2_name = r1.name.replace('{} 1:'.format(umi), '{} 2:'.format(umi))
 
             if args.paired:
-                sys.stdout.write(index2 + lines[5])
-                sys.stdout.write(lines[6])
-                sys.stdout.write(':'*len(index2) + lines[7])
+                r2.name = r2_name
+                r2.sequence = index2 + r2.sequence
+                r2.qualities = ':'*len(index2) + r2.qualities
+                ofh.write(r2)
             else:
-                # Fake read 2
-                record.sequence = index2
-                record.qualities = ':'*len(index2)
-            ofh.write(record)
+                # r1 is fake read 2
+                r1.name = r2_name
+                r1.sequence = index2
+                r1.qualities = ':'*len(index2)
+                ofh.write(r1)
 
 
 
