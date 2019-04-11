@@ -4,6 +4,17 @@ It is however possible to get the UMI sequences into the read name of the fastq 
 then is broken.
 This repo contains some scripts to transform the input and perform the demultiplexing using cutadapt.
 
+## Supported Use cases
+### Unique dual indices, single end sequencing, UMI in the end of the first adapter
+### Unique dual indices, paired end sequencing, UMI in the end of the first adapter
+
+## Use cases not supported
+### Dual non-unique indices
+This requires running cutadapt twice, demultiplexing based on one index at a time.
+
+### UMI in template read
+This is supported by `bcl2fastq2` and therefore, this hack is not necessary.
+
 ## Input
 Fastq file(s) with the indices and UMIs located in the read name, like so:
 ```
