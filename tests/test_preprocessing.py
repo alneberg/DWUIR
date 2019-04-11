@@ -17,7 +17,7 @@ def run_preprocessing_1read_paired():
     testdir = os.path.dirname(os.path.realpath(__file__))
     input_file = os.path.join(testdir, 'test_data', '1_read.interleaved.fastq.gz')
     script_path = os.path.join(testdir, '..', 'dwuir', 'DWUIR_preprocessing.py')
-    return subprocess.Popen(['python', script_path, input_file], stdout=subprocess.PIPE).stdout
+    return subprocess.Popen(['python',  script_path, '--paired', input_file], stdout=subprocess.PIPE).stdout
     
 
 def test_umi_placement():
@@ -107,7 +107,7 @@ def test_length_read_index_paired():
 
 def test_paired_r1r2_header():
     """Identical header except R1/R2 denotion for paired"""
-    output = run_preprocessing_1read().readlines()
+    output = run_preprocessing_1read_paired().readlines()
     assert output[4].replace(b' 2:N', b' 1:N') == output[0]
 
 if __name__ == '__main__':
