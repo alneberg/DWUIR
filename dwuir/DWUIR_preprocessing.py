@@ -25,23 +25,25 @@ def main(args):
     # ([A-Z]*) = Index1
     # ([A-Z]{N}) = UMI with exactly N bases
     # \+([A-Z]*) = Plus sign and Index2
-    index_umi_re = re.compile(' ([1,2]:[N,Y]:[0-9]*):([A-Z]*)([A-Z]{{}})\+([A-Z]*)$'.format(args.UMI_length))
+    # I didn't get string formatting to work, so I made a quick + + instead.
+    index_umi_re = re.compile(' ([1,2]:[N,Y]:[0-9]*):([A-Z]*)([A-Z]{' + str(args.UMI_length) + '})\+([A-Z]*)$')
     sub_pattern = re.compile('\3 \1:\2+\4')
 
     step_len = 4
     if args.paired:
         step_len = 8
-    with dnaio.open(args.input_fastq) as ifh:
-        for record in ifh[:step_len]:
-            _, index1, umi, index2 = re.search(index_umi_re, lines[0])
-            header_line1 = re.sub(index_umi_re, sub_pattern, lines[0])
-            sys.stdout.write(header_line1)
-            sys.stdout.write(index1 + lines[1])
-            sys.stdout.write(lines[2])
-            sys.stdout.write(':'*len(index1) + lines[3])
-            
+
+    with dnaio.open(args.input_fastq) as ifh, \
+         dnaio.open(sys.stdout.buffer, fileformat='fastq', mode='w') as ofh:
+        for record in ifh:
+            _, index1, umi, index2 = re.search(index_umi_re, record.name).groups()
+            record.name = re.sub(index_umi_re, r':\3 \1:\2+\4', record.name)
+            record.sequence = index1 + record.sequence
+            record.qualities = ':'*len(index1) + record.qualities
+            ofh.write(record)
+
             # Start printing R2:
-            sys.stdout.write(header_line1.replace('{} 1:'.format(umi), '{} 2:'.format(umi)))
+            record.name = record.name.replace('{} 1:'.format(umi), '{} 2:'.format(umi))
 
             if args.paired:
                 sys.stdout.write(index2 + lines[5])
@@ -49,9 +51,9 @@ def main(args):
                 sys.stdout.write(':'*len(index2) + lines[7])
             else:
                 # Fake read 2
-                sys.stdout.write(index2 + '\n')
-                sys.stdout.write(lines[2])
-                sys.stdout.write(':'*len(index2)+'\n')
+                record.sequence = index2
+                record.qualities = ':'*len(index2)
+            ofh.write(record)
 
 
 
