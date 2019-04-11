@@ -1,22 +1,22 @@
 import subprocess
 import os
+import gzip
+
+TESTDIR = os.path.dirname(os.path.realpath(__file__))
 
 def run_preprocessing_1read():
-    testdir = os.path.dirname(os.path.realpath(__file__))
-    input_file = os.path.join(testdir, 'test_data', '1_read.fastq.gz')
-    script_path = os.path.join(testdir, '..', 'dwuir', 'DWUIR_preprocessing.py')
+    input_file = os.path.join(TESTDIR, 'test_data', '1_read.fastq.gz')
+    script_path = os.path.join(TESTDIR, '..', 'dwuir', 'DWUIR_preprocessing.py')
     return subprocess.Popen(['python', script_path, input_file], stdout=subprocess.PIPE).stdout
 
 def run_preprocessing_250_reads():
-    testdir = os.path.dirname(os.path.realpath(__file__))
-    input_file = os.path.join(testdir, 'test_data', '250_reads.fastq.gz')
-    script_path = os.path.join(testdir, '..', 'dwuir', 'DWUIR_preprocessing.py')
+    input_file = os.path.join(TESTDIR, 'test_data', '250_reads.fastq.gz')
+    script_path = os.path.join(TESTDIR, '..', 'dwuir', 'DWUIR_preprocessing.py')
     return subprocess.Popen(['python', script_path, input_file], stdout=subprocess.PIPE).stdout
 
 def run_preprocessing_1read_paired():
-    testdir = os.path.dirname(os.path.realpath(__file__))
-    input_file = os.path.join(testdir, 'test_data', '1_read.interleaved.fastq.gz')
-    script_path = os.path.join(testdir, '..', 'dwuir', 'DWUIR_preprocessing.py')
+    input_file = os.path.join(TESTDIR, 'test_data', '1_read.interleaved.fastq.gz')
+    script_path = os.path.join(TESTDIR, '..', 'dwuir', 'DWUIR_preprocessing.py')
     return subprocess.Popen(['python',  script_path, '--paired', input_file], stdout=subprocess.PIPE).stdout
     
 
@@ -37,18 +37,13 @@ def test_read_sequence_R1():
     """First index placed in R1"""
     first = True
     second = False
-    for line in run_preprocessing_1read():
-        if first:
-            first = False
-        else: # Only test the second line
-            assert line.startswith(b'CACCCGTT')
-            second = True
-            break
-    assert second # Make sure the else case is executed
+    output = run_preprocessing_1read().readlines()
+    assert output[1].startswith(b'CACCCGTT')
 
-    with gzip.open('1_read.fastq.gz', 'rb') as ifh:
+    input_file = os.path.join(TESTDIR, 'test_data', '1_read.fastq.gz')
+    with gzip.open(input_file, 'rb') as ifh:
         original = ifh.readlines()
-    assert output[1] == 'CACCCGTT' + original[1]
+    assert output[1] == b'CACCCGTT' + original[1]
 
 def test_interleaved():
     """Exactly 2 interleaved reads"""
@@ -73,13 +68,13 @@ def test_nr_reads():
 def test_paired_umi_placement():
     """Check UMI placement for both reads"""
     output = run_preprocessing_1read_paired().readlines()
-    for line in output[0,4]:
+    for line in output[0],output[4]:
         assert line.split(b':')[7].split(b' ')[0] == b'CATGACGAC'
 
 def test_paired_index_header_placement():
     """Check index placement for both reads"""
     output = run_preprocessing_1read_paired().readlines()
-    for line in output[0,4]:
+    for line in output[0],output[4]:
         assert line.split(b':')[-1] == b"CACCCGTT+GCTATCCT\n"
 
 def test_paired_read_sequences():
@@ -94,10 +89,11 @@ def test_paired_read_sequences():
     assert output[1].startswith(b'CACCCGTT')
     assert output[5].startswith(b'GCTATCCT')
 
-    with gzip.open('1_read.interleaved.fastq.gz', 'rb') as ifh:
+    input_file = os.path.join(TESTDIR, 'test_data', '1_read.interleaved.fastq.gz')
+    with gzip.open(input_file, 'rb') as ifh:
         original = ifh.readlines()
-    assert output[1] == 'CACCCGTT' + original[1]
-    assert output[5] == 'GCTATCCT' + original[5]
+    assert output[1] == b'CACCCGTT' + original[1]
+    assert output[5] == b'GCTATCCT' + original[5]
 
 def test_length_read_index_paired():
     """Length of read and qualities should match"""
