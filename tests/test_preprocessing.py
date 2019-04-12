@@ -4,10 +4,10 @@ import gzip
 
 TESTDIR = os.path.dirname(os.path.realpath(__file__))
 
-def run_preprocessing_1read():
+def run_preprocessing_1read(*args):
     input_file = os.path.join(TESTDIR, 'test_data', '1_read.fastq.gz')
     script_path = os.path.join(TESTDIR, '..', 'dwuir', 'DWUIR_preprocessing.py')
-    return subprocess.Popen(['python', script_path, input_file], stdout=subprocess.PIPE).stdout
+    return subprocess.Popen(['python', script_path, input_file] + list(args), stdout=subprocess.PIPE).stdout
 
 def run_preprocessing_250_reads():
     input_file = os.path.join(TESTDIR, 'test_data', '250_reads.fastq.gz')
@@ -35,8 +35,6 @@ def test_index_header_placement():
 
 def test_read_sequence_R1():
     """First index placed in R1"""
-    first = True
-    second = False
     output = run_preprocessing_1read().readlines()
     assert output[1].startswith(b'CACCCGTT')
 
@@ -44,6 +42,20 @@ def test_read_sequence_R1():
     with gzip.open(input_file, 'rb') as ifh:
         original = ifh.readlines()
     assert output[1] == b'CACCCGTT' + original[1]
+
+def test_variable_length_UMI():
+    """Correct UMI in R1"""
+    output = run_preprocessing_1read('--UMI_length', '8').readlines()
+    assert output[0].split(b':')[7].split(b' ')[0] == b'ATGACGAC'
+    assert output[1].startswith(b'CACCCGTTC')
+    assert output[5].startswith(b'GCTATCCT')
+
+    output = run_preprocessing_1read('--UMI_length', '12').readlines()
+    assert output[0].split(b':')[7].split(b' ')[0] == b'GTTCATGACGAC'
+    assert not output[1].startswith(b'CACCCGTTC')
+    assert output[1].startswith(b'CACCC')
+    assert output[5].startswith(b'GCTATCCT')
+
 
 def test_interleaved():
     """Exactly 2 interleaved reads"""
